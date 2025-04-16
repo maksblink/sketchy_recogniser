@@ -3,6 +3,7 @@
 
 raw/
 master_doodle_dataframe.csv
+kaggle/
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
