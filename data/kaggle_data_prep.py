@@ -47,11 +47,11 @@ def create_images():
     df: pd.DataFrame = pd.read_csv(master_file)
 
     CLASSES_FOLDER: Path = ASSETS_FOLDER / "classes"
-    CLASSES_FOLDER.mkdir()
+    if not CLASSES_FOLDER.exists(): CLASSES_FOLDER.mkdir()
 
     # Future work: add threadpool
     image_number: int = 0
-    for image_class, strokes in zip(df["word"], df["drawing"]):
+    for image_class, strokes in tqdm.tqdm(zip(df["word"], df["drawing"]), desc="Creating Images"):
         image_class = str(image_class).translate({ord(" "): ord("_")})
 
         img: PIL.Image.Image = PIL.Image.new(size=(255, 255), color="black", mode="L")
@@ -64,8 +64,8 @@ def create_images():
 
         img.save(CLASSES_FOLDER / image_class / f"{image_class}_{image_number}.png")
         image_number += 1
-        
+
 
 if __name__ == "__main__":
-    # filter_data()
+    filter_data()
     create_images()
