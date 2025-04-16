@@ -51,7 +51,8 @@ def create_images():
 
     # Future work: add threadpool
     image_number: int = 0
-    for image_class, strokes in tqdm.tqdm(zip(df["word"], df["drawing"]), desc="Creating Images"):
+    progres_bar = tqdm.tqdm(desc="Creating Images", total=df.shape[0])
+    for image_class, strokes in zip(df["word"], df["drawing"]):
         image_class = str(image_class).translate({ord(" "): ord("_")})
 
         img: PIL.Image.Image = PIL.Image.new(size=(255, 255), color="black", mode="L")
@@ -64,6 +65,7 @@ def create_images():
 
         img.save(CLASSES_FOLDER / image_class / f"{image_class}_{image_number}.png")
         image_number += 1
+        progres_bar.update(1)
 
 
 if __name__ == "__main__":

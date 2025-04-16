@@ -1,5 +1,4 @@
 import socketserver
-from threading import Thread
 
 from core import handler
 from path import Path
