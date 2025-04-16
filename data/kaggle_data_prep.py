@@ -13,7 +13,7 @@ from path import Path
 ASSETS_FOLDER: str = Path(__file__).parent.parent / "assets"
 if not ASSETS_FOLDER.exists(): ASSETS_FOLDER.mkdir()
 
-object_list: list[str] = ["house plant", "guitar", "basketball", "sword", "door", "key", "lantern", "chair", "pencil"]
+object_list: list[str] = ["house plant", "guitar", "basketball", "sword", "door", "key", "lantern", "chair", "pencil", "axe"]
 
 
 def filter_data() -> None:
