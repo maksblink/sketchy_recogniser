@@ -6,9 +6,6 @@ import pandas as pd
 import tqdm
 import json
 
-from multiprocessing.pool import ThreadPool
-
-
 # https://www.kaggle.com/code/mariasaif/building-and-training-a-cnn-for-doodle-classificat
 
 from path import Path
