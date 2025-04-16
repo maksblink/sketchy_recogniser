@@ -6,11 +6,12 @@ import pandas as pd
 import tqdm
 import json
 
-# https://www.kaggle.com/code/mariasaif/building-and-training-a-cnn-for-doodle-classificat
+# https://www.kaggle.com/datasets/ashishjangra27/doodle-dataset/data?select=master_doodle_dataframe.csv
 
 from path import Path
 
-ASSETS_FOLDER: str = Path(__file__).parent.parent / "assets" / "kaggle"
+ASSETS_FOLDER: str = Path(__file__).parent.parent / "assets"
+if not ASSETS_FOLDER.exists(): ASSETS_FOLDER.mkdir()
 
 object_list: list[str] = ["house plant", "guitar", "basketball", "sword", "door", "key", "lantern", "chair", "pencil"]
 
