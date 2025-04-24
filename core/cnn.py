@@ -2,9 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from torchvision import transforms
-import PIL.Image
-
 class SketchyCNN(nn.Module): 
 
     def __init__(self, *args, **kwargs):
@@ -37,6 +34,3 @@ class SketchyCNN(nn.Module):
         # x = self.dropout2(x) # Optional
         x = self.fc3(x)
         return x
-
-
-

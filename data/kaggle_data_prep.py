@@ -1,10 +1,13 @@
-import PIL
+import tqdm
+import json
+import shutil
+import random
+
 import PIL.Image
 import PIL.ImageDraw
 import pandas as pd
 
-import tqdm
-import json
+from path import Path
 
 # https://www.kaggle.com/datasets/ashishjangra27/doodle-dataset/data?select=master_doodle_dataframe.csv
 
@@ -66,6 +69,46 @@ def create_images():
         progres_bar.update(1)
 
 
+def prepare_data() -> None:
+    BASE_DIR = Path(__file__).parent.parent
+    SOURCE_DIR = BASE_DIR / "assets" / "classes"
+    TRAIN_DIR = BASE_DIR / "assets" / "train"
+    VALID_DIR = BASE_DIR / "assets" / "valid"
+
+    SPLIT_RATIO = 0.8
+    SEED = 42
+
+    random.seed(SEED)
+
+    for target_dir in [TRAIN_DIR, VALID_DIR]:
+        if target_dir.exists():
+            shutil.rmtree(target_dir)
+        target_dir.mkdir()
+
+    for class_folder in SOURCE_DIR.iterdir():
+        if class_folder.is_dir():
+            images = list(class_folder.glob("*.*"))
+            random.shuffle(images)
+
+            split_idx = int(len(images) * SPLIT_RATIO)
+            train_images = images[:split_idx]
+            valid_images = images[split_idx:]
+
+            train_class_dir = TRAIN_DIR / class_folder.name
+            valid_class_dir = VALID_DIR / class_folder.name
+            train_class_dir.mkdir()
+            valid_class_dir.mkdir()
+
+            for img_path in train_images:
+                shutil.copy(img_path, train_class_dir / img_path.name)
+            for img_path in valid_images:
+                shutil.copy(img_path, valid_class_dir / img_path.name)
+
+            print(f"Class '{class_folder.name}': {len(train_images)} train, {len(valid_images)} valid")
+
+    print("DONE")
+
 if __name__ == "__main__":
-    filter_data()
-    create_images()
+    # filter_data()
+    # create_images()
+    prepare_data()
