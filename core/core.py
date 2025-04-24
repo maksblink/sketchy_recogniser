@@ -73,7 +73,7 @@ class SketchyRecognizer:
         return self._predict(input_tensor)
 
 
-    def train(self) -> None: # tu przepisać z core, wszystkie dane podzielić na train in test i zapisać w polach klasowych? 
+    def train(self, number_of_epochs) -> None:
         train_dir = "assets/train"
         valid_dir = "assets/valid"
 
@@ -86,7 +86,7 @@ class SketchyRecognizer:
         print(f"Classes: {train_dataset.classes}")
         print(f"Training images: {len(train_dataset)}, Validation images: {len(valid_dataset)}")
     
-        model = SketchyCNN().to(DEVICE)
+        model = SketchyCNN().to(self.device)
 
 
         criterion = nn.CrossEntropyLoss()
@@ -98,7 +98,7 @@ class SketchyRecognizer:
             total_loss, correct, total = 0.0, 0, 0
 
             for images, labels in dataloader:
-                images, labels = images.to(DEVICE), labels.to(DEVICE)
+                images, labels = images.to(self.device), labels.to(self.device)
 
                 optimizer.zero_grad()
                 outputs = model(images)
@@ -113,6 +113,15 @@ class SketchyRecognizer:
 
             accuracy = correct / total * 100
             return total_loss, accuracy
+
+
+
+        for _ in number_of_epochs:
+            train_one_epoch(model, dataloader, criterion, optimizer)
+
+
+
+    def evaluate() -> None: # tu zrobić przejście przez dane testowe, może też tu je załadować. Ma pokazać wykresy z wynikami
 
         def validate(model, dataloader, criterion):
             model.eval()
@@ -133,23 +142,15 @@ class SketchyRecognizer:
             return total_loss, accuracy
 
 
-    def evaluate(self) -> None: # tu zrobić przejście przez dane testowe, może też tu je załadować. Ma pokazać wykresy z wynikami
+        best_val_acc = 0.0
 
-        # best_val_acc = 0.0
+        val_loss, val_acc = validate(model, valid_loader, criterion)
 
-        # for epoch in range(EPOCHS):
-        #     train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer)
-        #     val_loss, val_acc = validate(model, valid_loader, criterion)
+        validate(model, dataloader, criterion)
 
-        #     print(f"\nEpoch {epoch+1}/{EPOCHS}")
-        #     print(f"Train - Loss: {train_loss:.5f}, Accuracy: {train_acc:.5f}%")
-        #     print(f"Valid - Loss: {val_loss:.5f}, Accuracy: {val_acc:.5f}%")
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            torch.save(model.state_dict(), "sketchy_model_best.pth")
+            print("Saved better one")
 
-
-        #     if val_acc > best_val_acc:
-        #         best_val_acc = val_acc
-        #         torch.save(model.state_dict(), "sketchy_model_best.pth")
-        #         print("Saved better one")
-
-        # print("DONE")
-        pass
+        print("DONE")
