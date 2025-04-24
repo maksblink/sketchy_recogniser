@@ -9,6 +9,7 @@ from cnn import SketchyCNN
 import PIL.Image
 from PIL.Image import Image
 import numpy as np
+import matplotlib as plt
 
 
 class SketchyRecognizer:
@@ -17,13 +18,18 @@ class SketchyRecognizer:
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     object_list: list[str] = ["house plant", "guitar", "basketball", "sword", "door", "key", "lantern", "chair", "pencil", "axe"]
 
+    batch_size: int = 32
+
+    train_accuracies = []
+    train_losses = []
+
     transform = transforms.Compose([
         transforms.Grayscale(num_output_channels=1),
         transforms.Resize((64, 64)),
         transforms.ToTensor(),
         transforms.Normalize((0.0), (0.5))
         ])
-
+    
 
     def __init__(self, auto_load_model: bool = True):
         print("Using:\t", SketchyRecognizer.device)
@@ -90,15 +96,15 @@ class SketchyRecognizer:
         return total_loss, accuracy
 
 
-    def train(self, epochs: int = 69, batch_size: int = 32, learning_rate: float = 0.001) -> None:
+    def train(self, epochs: int = 69, learning_rate: float = 0.001) -> None:
         train_dir = "assets/train"
         valid_dir = "assets/valid"
 
         train_dataset = datasets.ImageFolder(train_dir, transform=SketchyRecognizer.transform)
         valid_dataset = datasets.ImageFolder(valid_dir, transform=SketchyRecognizer.transform)
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-        valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
+        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
+        valid_loader = DataLoader(valid_dataset, batch_size=self.batch_size, shuffle=False)
 
         print(f"Classes: {train_dataset.classes}")
         print(f"Training images: {len(train_dataset)}, Validation images: {len(valid_dataset)}")
@@ -107,7 +113,9 @@ class SketchyRecognizer:
         optimizer = optim.Adam(SketchyRecognizer.cnn.parameters(), lr=learning_rate)
 
         for _ in epochs:
-            self._train_one_epoch(dataloader, criterion, optimizer)
+            loss, accuracy = self._train_one_epoch(dataloader, criterion, optimizer)
+            self.train_accuracies.append(accuracy)
+            self.train_losses.append(loss)
 
 
     def _validate(self, model, dataloader, criterion):
@@ -129,16 +137,41 @@ class SketchyRecognizer:
         return total_loss, accuracy
 
 
-    def evaluate(self) -> None: # tu zrobić przejście przez dane testowe, może też tu je załadować. Ma pokazać wykresy z wynikami
-        best_val_acc = 0.0
+    def evaluate(self) -> None: 
+        # best_accuracy = 0.0
 
-        val_loss, val_acc = self._validate(SketchyRecognizer.cnn, valid_loader, criterion)
+        test_dir = "assets/valid"
+        test_dataset = datasets.ImageFolder(test_dir, transform=SketchyRecognizer.transform)
+        test_loader = DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False)
+        
+        criterion = nn.CrossEntropyLoss()
 
-        self._validate(model, dataloader, criterion)
+        loss, accuracy = self._validate(SketchyRecognizer.cnn, test_loader, criterion)
 
-        if val_acc > best_val_acc:
-            best_val_acc = val_acc
-            torch.save(model.state_dict(), "sketchy_model_best.pth")
-            print("Saved better one")
+        self.train_losses.append(loss)
+        self.train_accuracies.append(accuracy)
+        epochs = list(range(1, len(self.train_losses) + 1)) + ['Eval']
+
+        plt.figure(figsize=(12, 6))
+        plt.subplot(1, 2, 1)
+        plt.bar(epochs, self.train_losses, color='red')
+        plt.xlabel('Epoch Number')
+        plt.ylabel('Loss')
+        plt.title('Loss per Training Epoch Plot')
+
+        plt.subplot(1, 2, 2)
+        plt.bar(epochs, self.train_accuracies, color='green')
+        plt.xlabel('Epoch Number')
+        plt.ylabel('Accuracy')
+        plt.title('Accuracy per Training Epoch Plot')
+
+        plt.tight_layout()
+        plt.show()
+
+        # if accuracy > best_accuracy:
+        #     best_accuracy = accuracy
+        #     torch.save(SketchyRecognizer.cnn.state_dict(), "sketchy_model_best.pth")
+        #     print("Saved better one")
 
         print("DONE")
+
