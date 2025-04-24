@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import torchvision
+from torchvision import transforms
 import PIL.Image
 
 class SketchyCNN(nn.Module): 
@@ -45,6 +45,13 @@ class SketchyRecognizer:
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     object_list: list[str] = ["house plant", "guitar", "basketball", "sword", "door", "key", "lantern", "chair", "pencil", "axe"]
 
+    transform = transforms.Compose([
+        transforms.Grayscale(num_output_channels=1),
+        transforms.Resize((64, 64)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.0), (0.5))
+        ])
+
     def __init__(self, auto_load_model: bool = True):
         print("Using:\t", SketchyRecognizer.device)
 
@@ -76,22 +83,3 @@ class SketchyRecognizer:
 
     def evaluate() -> None: # tu zrobić przejście przez dane testowe, może też tu je załadować. Ma pokazać wykresy z wynikami
         pass
-
-
-sketchy_recognizer = SketchyRecognizer()
-test_im_path: str = "/home/nsjg/Desktop/Sketchy_prj/sketchy_recogniser/assets/classes/basketball/basketball_9000.png"
-
-image = PIL.Image.open(test_im_path)
-
-transform = torchvision.transforms.Compose([
-    torchvision.transforms.Grayscale(num_output_channels=1),
-    torchvision.transforms.Resize((28, 28)),
-    torchvision.transforms.ToTensor(),
-    torchvision.transforms.Normalize((0.0), (0.5))
-])
-
-transformed_image = transform(image)
-
-
-# print(transformed_image)
-print(sketchy_recognizer.predict(transformed_image))
