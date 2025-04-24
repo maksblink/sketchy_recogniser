@@ -33,70 +33,70 @@ print(f"Classes: {train_dataset.classes}")
 print(f"Training images: {len(train_dataset)}, Validation images: {len(valid_dataset)}")
 
 
-model = SketchyCNN().to(DEVICE)
+# model = SketchyCNN().to(DEVICE)
 
 
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+# criterion = nn.CrossEntropyLoss()
+# optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 
-def train_one_epoch(model, dataloader, criterion, optimizer):
-    model.train()
-    total_loss, correct, total = 0.0, 0, 0
+# def train_one_epoch(model, dataloader, criterion, optimizer):
+#     model.train()
+#     total_loss, correct, total = 0.0, 0, 0
 
-    for images, labels in dataloader:
-        images, labels = images.to(DEVICE), labels.to(DEVICE)
+#     for images, labels in dataloader:
+#         images, labels = images.to(DEVICE), labels.to(DEVICE)
 
-        optimizer.zero_grad()
-        outputs = model(images)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
+#         optimizer.zero_grad()
+#         outputs = model(images)
+#         loss = criterion(outputs, labels)
+#         loss.backward()
+#         optimizer.step()
 
-        total_loss += loss.item()
-        _, predicted = outputs.max(1)
-        correct += (predicted == labels).sum().item()
-        total += labels.size(0)
+#         total_loss += loss.item()
+#         _, predicted = outputs.max(1)
+#         correct += (predicted == labels).sum().item()
+#         total += labels.size(0)
 
-    accuracy = correct / total * 100
-    return total_loss, accuracy
+#     accuracy = correct / total * 100
+#     return total_loss, accuracy
 
-def validate(model, dataloader, criterion):
-    model.eval()
-    total_loss, correct, total = 0.0, 0, 0
+# def validate(model, dataloader, criterion):
+#     model.eval()
+#     total_loss, correct, total = 0.0, 0, 0
 
-    with torch.no_grad():
-        for images, labels in dataloader:
-            images, labels = images.to(DEVICE), labels.to(DEVICE)
-            outputs = model(images)
-            loss = criterion(outputs, labels)
+#     with torch.no_grad():
+#         for images, labels in dataloader:
+#             images, labels = images.to(DEVICE), labels.to(DEVICE)
+#             outputs = model(images)
+#             loss = criterion(outputs, labels)
 
-            total_loss += loss.item()
-            _, predicted = outputs.max(1)
-            correct += (predicted == labels).sum().item()
-            total += labels.size(0)
+#             total_loss += loss.item()
+#             _, predicted = outputs.max(1)
+#             correct += (predicted == labels).sum().item()
+#             total += labels.size(0)
 
-    accuracy = correct / total * 100
-    return total_loss, accuracy
-
-
-best_val_acc = 0.0
-
-for epoch in range(EPOCHS):
-    train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer)
-    val_loss, val_acc = validate(model, valid_loader, criterion)
-
-    print(f"\nEpoch {epoch+1}/{EPOCHS}")
-    print(f"Train - Loss: {train_loss:.5f}, Accuracy: {train_acc:.5f}%")
-    print(f"Valid - Loss: {val_loss:.5f}, Accuracy: {val_acc:.5f}%")
+#     accuracy = correct / total * 100
+#     return total_loss, accuracy
 
 
-    if val_acc > best_val_acc:
-        best_val_acc = val_acc
-        torch.save(model.state_dict(), "sketchy_model_best.pth")
-        print("Saved better one")
+# best_val_acc = 0.0
 
-print("DONE")
+# for epoch in range(EPOCHS):
+#     train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer)
+#     val_loss, val_acc = validate(model, valid_loader, criterion)
+
+#     print(f"\nEpoch {epoch+1}/{EPOCHS}")
+#     print(f"Train - Loss: {train_loss:.5f}, Accuracy: {train_acc:.5f}%")
+#     print(f"Valid - Loss: {val_loss:.5f}, Accuracy: {val_acc:.5f}%")
+
+
+#     if val_acc > best_val_acc:
+#         best_val_acc = val_acc
+#         torch.save(model.state_dict(), "sketchy_model_best.pth")
+#         print("Saved better one")
+
+# print("DONE")
 
 
 
