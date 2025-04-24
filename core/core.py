@@ -10,11 +10,6 @@ import PIL.Image
 from PIL.Image import Image
 import numpy as np
 
-# Traning params
-BATCH_SIZE = 32
-EPOCHS = 77
-LEARNING_RATE = 0.001
-
 
 class SketchyRecognizer:
 
@@ -73,80 +68,73 @@ class SketchyRecognizer:
         return self._predict(input_tensor)
 
 
-    def train(self, number_of_epochs) -> None:
+    def _train_one_epoch(self, dataloader, criterion, optimizer: optim.Optimizer):
+        SketchyRecognizer.cnn.train()
+        total_loss, correct, total = 0.0, 0, 0
+
+        for images, labels in dataloader:
+            images, labels = images.to(self.device), labels.to(self.device)
+
+            optimizer.zero_grad()
+            outputs = SketchyRecognizer.cnn(images)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            total_loss += loss.item()
+            _, predicted = outputs.max(1)
+            correct += (predicted == labels).sum().item()
+            total += labels.size(0)
+
+        accuracy = correct / total * 100
+        return total_loss, accuracy
+
+
+    def train(self, epochs: int = 69, batch_size: int = 32, learning_rate: float = 0.001) -> None:
         train_dir = "assets/train"
         valid_dir = "assets/valid"
 
         train_dataset = datasets.ImageFolder(train_dir, transform=SketchyRecognizer.transform)
         valid_dataset = datasets.ImageFolder(valid_dir, transform=SketchyRecognizer.transform)
 
-        train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-        valid_loader = DataLoader(valid_dataset, batch_size=BATCH_SIZE, shuffle=False)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
 
         print(f"Classes: {train_dataset.classes}")
         print(f"Training images: {len(train_dataset)}, Validation images: {len(valid_dataset)}")
     
-        model = SketchyCNN().to(self.device)
-
-
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+        optimizer = optim.Adam(SketchyRecognizer.cnn.parameters(), lr=learning_rate)
+
+        for _ in epochs:
+            self._train_one_epoch(dataloader, criterion, optimizer)
 
 
-        def train_one_epoch(model, dataloader, criterion, optimizer):
-            model.train()
-            total_loss, correct, total = 0.0, 0, 0
+    def _validate(self, model, dataloader, criterion):
+        model.eval()
+        total_loss, correct, total = 0.0, 0, 0
 
+        with torch.no_grad():
             for images, labels in dataloader:
                 images, labels = images.to(self.device), labels.to(self.device)
-
-                optimizer.zero_grad()
                 outputs = model(images)
                 loss = criterion(outputs, labels)
-                loss.backward()
-                optimizer.step()
 
                 total_loss += loss.item()
                 _, predicted = outputs.max(1)
                 correct += (predicted == labels).sum().item()
                 total += labels.size(0)
 
-            accuracy = correct / total * 100
-            return total_loss, accuracy
+        accuracy = correct / total * 100
+        return total_loss, accuracy
 
 
-
-        for _ in number_of_epochs:
-            train_one_epoch(model, dataloader, criterion, optimizer)
-
-
-
-    def evaluate() -> None: # tu zrobić przejście przez dane testowe, może też tu je załadować. Ma pokazać wykresy z wynikami
-
-        def validate(model, dataloader, criterion):
-            model.eval()
-            total_loss, correct, total = 0.0, 0, 0
-
-            with torch.no_grad():
-                for images, labels in dataloader:
-                    images, labels = images.to(DEVICE), labels.to(DEVICE)
-                    outputs = model(images)
-                    loss = criterion(outputs, labels)
-
-                    total_loss += loss.item()
-                    _, predicted = outputs.max(1)
-                    correct += (predicted == labels).sum().item()
-                    total += labels.size(0)
-
-            accuracy = correct / total * 100
-            return total_loss, accuracy
-
-
+    def evaluate(self) -> None: # tu zrobić przejście przez dane testowe, może też tu je załadować. Ma pokazać wykresy z wynikami
         best_val_acc = 0.0
 
-        val_loss, val_acc = validate(model, valid_loader, criterion)
+        val_loss, val_acc = self._validate(SketchyRecognizer.cnn, valid_loader, criterion)
 
-        validate(model, dataloader, criterion)
+        self._validate(model, dataloader, criterion)
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
