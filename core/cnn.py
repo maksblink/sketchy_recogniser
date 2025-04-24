@@ -39,47 +39,4 @@ class SketchyCNN(nn.Module):
         return x
 
 
-class SketchyRecognizer:
 
-    cnn: SketchyCNN = SketchyCNN()
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    object_list: list[str] = ["house plant", "guitar", "basketball", "sword", "door", "key", "lantern", "chair", "pencil", "axe"]
-
-    transform = transforms.Compose([
-        transforms.Grayscale(num_output_channels=1),
-        transforms.Resize((64, 64)),
-        transforms.ToTensor(),
-        transforms.Normalize((0.0), (0.5))
-        ])
-
-    def __init__(self, auto_load_model: bool = True):
-        print("Using:\t", SketchyRecognizer.device)
-
-        if auto_load_model:
-            self.load_model()
-        
-        # SketchyRecognizer.cnn.to(SketchyRecognizer.device)
-
-    def load_model(self, model_name: str = "model.mdl") -> None: 
-        try: 
-            SketchyRecognizer.cnn.load_state_dict(torch.load(model_name))
-        except: 
-            print("Model was not loaded")
-
-
-    def save_model(self, model_name: str = "model.mdl") -> None: 
-        try:
-            torch.save(SketchyRecognizer.cnn, model_name)
-        except: 
-            print("Model could not be saved")
-
-    def predict(self, image) -> dict[str, int|str]:
-        prediction: torch.Tensor = SketchyRecognizer.cnn.forward(image)
-        predicted_class: int = prediction.argmax(dim=0)
-        return {"class_id": predicted_class, "class_name": SketchyRecognizer.object_list[predicted_class]} 
-    
-    def train() -> None: # tu przepisać z core, wszystkie dane podzielić na train in test i zapisać w polach klasowych? 
-        pass
-
-    def evaluate() -> None: # tu zrobić przejście przez dane testowe, może też tu je załadować. Ma pokazać wykresy z wynikami
-        pass
