@@ -15,7 +15,7 @@ class SketchyCNN(nn.Module):
 
         self.conv3 = nn.Conv2d(in_channels=64, out_channels=256, kernel_size=3) # 14x14 → 12x12
 
-        self.fc1 = nn.Linear(3*3*256, 512)
+        self.fc1 = nn.Linear(12*12*256, 512)
         self.fc2 = nn.Linear(512, 128)
         self.fc3 = nn.Linear(128, 10)
 

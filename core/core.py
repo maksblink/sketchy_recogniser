@@ -3,10 +3,12 @@ import torch
 from torch import nn, optim
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
-from core.cnn import SketchyCNN
+from cnn import SketchyCNN
 
+
+import PIL.Image
 from PIL.Image import Image
-from numpy import ndarray
+import numpy as np
 
 # Traning params
 BATCH_SIZE = 32
@@ -54,26 +56,22 @@ class SketchyRecognizer:
     def _predict(self, tensor: torch.Tensor) -> dict[str, int|str]:
         device_tensor = tensor.to(SketchyRecognizer.device)
         prediction: torch.Tensor = SketchyRecognizer.cnn.forward(device_tensor)
-        predicted_class: int = prediction.argmax(dim=0)
+        host_prediction = prediction.to("cpu")
+        predicted_class: int = host_prediction.argmax(dim=0).item()
         return {"class_id": predicted_class, "class_name": SketchyRecognizer.object_list[predicted_class]} 
 
 
-    def predict(self, tensor: torch.Tensor) -> dict[str, int|str]:
-        input_tensor: torch.Tensor = transforms.Resize((64, 64))(tensor)
-        input_tensor = transforms.Normalize((0.0), (0.5))(tensor)
-        return self._predict(input_tensor)
-
-
-    def predict(self, image: Image) -> dict[str, int|str]:
+    def predict_from_image(self, image: Image) -> dict[str, int|str]:
         input_tensor: torch.Tensor = SketchyRecognizer.transform(image)
         return self._predict(input_tensor)
 
 
-    def predict(self, array: ndarray) -> dict[str, int|str]:
-        input_tensor: torch.Tensor = torch.from_numpy(array)
+    def predict_from_array(self, array: np.ndarray) -> dict[str, int|str]:
+        input_tensor = transforms.ToTensor()(np.array(array))
         input_tensor = transforms.Resize((64, 64))(input_tensor)
         input_tensor = transforms.Normalize((0.0), (0.5))(input_tensor)
         return self._predict(input_tensor)
+
 
     def train(self) -> None: # tu przepisać z core, wszystkie dane podzielić na train in test i zapisać w polach klasowych? 
         train_dir = "assets/train"
@@ -134,7 +132,9 @@ class SketchyRecognizer:
             accuracy = correct / total * 100
             return total_loss, accuracy
 
+
     def evaluate(self) -> None: # tu zrobić przejście przez dane testowe, może też tu je załadować. Ma pokazać wykresy z wynikami
+
         # best_val_acc = 0.0
 
         # for epoch in range(EPOCHS):
