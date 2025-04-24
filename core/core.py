@@ -5,6 +5,9 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from core.cnn import SketchyCNN
 
+from PIL.Image import Image
+from numpy import ndarray
+
 # Traning params
 BATCH_SIZE = 32
 EPOCHS = 77
@@ -24,13 +27,15 @@ class SketchyRecognizer:
         transforms.Normalize((0.0), (0.5))
         ])
 
+
     def __init__(self, auto_load_model: bool = True):
         print("Using:\t", SketchyRecognizer.device)
 
         if auto_load_model:
             self.load_model()
         
-        # SketchyRecognizer.cnn.to(SketchyRecognizer.device)
+        SketchyRecognizer.cnn.to(SketchyRecognizer.device)
+
 
     def load_model(self, model_name: str = "model.mdl") -> None: 
         try: 
@@ -45,13 +50,32 @@ class SketchyRecognizer:
         except: 
             print("Model could not be saved")
 
-    def predict(self, image) -> dict[str, int|str]:
-        prediction: torch.Tensor = SketchyRecognizer.cnn.forward(image)
+
+    def _predict(self, tensor: torch.Tensor) -> dict[str, int|str]:
+        device_tensor = tensor.to(SketchyRecognizer.device)
+        prediction: torch.Tensor = SketchyRecognizer.cnn.forward(device_tensor)
         predicted_class: int = prediction.argmax(dim=0)
         return {"class_id": predicted_class, "class_name": SketchyRecognizer.object_list[predicted_class]} 
 
 
-    def train() -> None: # tu przepisać z core, wszystkie dane podzielić na train in test i zapisać w polach klasowych? 
+    def predict(self, tensor: torch.Tensor) -> dict[str, int|str]:
+        input_tensor: torch.Tensor = transforms.Resize((64, 64))(tensor)
+        input_tensor = transforms.Normalize((0.0), (0.5))(tensor)
+        return self._predict(input_tensor)
+
+
+    def predict(self, image: Image) -> dict[str, int|str]:
+        input_tensor: torch.Tensor = SketchyRecognizer.transform(image)
+        return self._predict(input_tensor)
+
+
+    def predict(self, array: ndarray) -> dict[str, int|str]:
+        input_tensor: torch.Tensor = torch.from_numpy(array)
+        input_tensor = transforms.Resize((64, 64))(input_tensor)
+        input_tensor = transforms.Normalize((0.0), (0.5))(input_tensor)
+        return self._predict(input_tensor)
+
+    def train(self) -> None: # tu przepisać z core, wszystkie dane podzielić na train in test i zapisać w polach klasowych? 
         train_dir = "assets/train"
         valid_dir = "assets/valid"
 
@@ -64,53 +88,53 @@ class SketchyRecognizer:
         print(f"Classes: {train_dataset.classes}")
         print(f"Training images: {len(train_dataset)}, Validation images: {len(valid_dataset)}")
     
-        # model = SketchyCNN().to(DEVICE)
+        model = SketchyCNN().to(DEVICE)
 
 
-        # criterion = nn.CrossEntropyLoss()
-        # optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 
-        # def train_one_epoch(model, dataloader, criterion, optimizer):
-        #     model.train()
-        #     total_loss, correct, total = 0.0, 0, 0
+        def train_one_epoch(model, dataloader, criterion, optimizer):
+            model.train()
+            total_loss, correct, total = 0.0, 0, 0
 
-        #     for images, labels in dataloader:
-        #         images, labels = images.to(DEVICE), labels.to(DEVICE)
+            for images, labels in dataloader:
+                images, labels = images.to(DEVICE), labels.to(DEVICE)
 
-        #         optimizer.zero_grad()
-        #         outputs = model(images)
-        #         loss = criterion(outputs, labels)
-        #         loss.backward()
-        #         optimizer.step()
+                optimizer.zero_grad()
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
 
-        #         total_loss += loss.item()
-        #         _, predicted = outputs.max(1)
-        #         correct += (predicted == labels).sum().item()
-        #         total += labels.size(0)
+                total_loss += loss.item()
+                _, predicted = outputs.max(1)
+                correct += (predicted == labels).sum().item()
+                total += labels.size(0)
 
-        #     accuracy = correct / total * 100
-        #     return total_loss, accuracy
+            accuracy = correct / total * 100
+            return total_loss, accuracy
 
-        # def validate(model, dataloader, criterion):
-        #     model.eval()
-        #     total_loss, correct, total = 0.0, 0, 0
+        def validate(model, dataloader, criterion):
+            model.eval()
+            total_loss, correct, total = 0.0, 0, 0
 
-        #     with torch.no_grad():
-        #         for images, labels in dataloader:
-        #             images, labels = images.to(DEVICE), labels.to(DEVICE)
-        #             outputs = model(images)
-        #             loss = criterion(outputs, labels)
+            with torch.no_grad():
+                for images, labels in dataloader:
+                    images, labels = images.to(DEVICE), labels.to(DEVICE)
+                    outputs = model(images)
+                    loss = criterion(outputs, labels)
 
-        #             total_loss += loss.item()
-        #             _, predicted = outputs.max(1)
-        #             correct += (predicted == labels).sum().item()
-        #             total += labels.size(0)
+                    total_loss += loss.item()
+                    _, predicted = outputs.max(1)
+                    correct += (predicted == labels).sum().item()
+                    total += labels.size(0)
 
-        #     accuracy = correct / total * 100
-        #     return total_loss, accuracy
+            accuracy = correct / total * 100
+            return total_loss, accuracy
 
-    def evaluate() -> None: # tu zrobić przejście przez dane testowe, może też tu je załadować. Ma pokazać wykresy z wynikami
+    def evaluate(self) -> None: # tu zrobić przejście przez dane testowe, może też tu je załadować. Ma pokazać wykresy z wynikami
         # best_val_acc = 0.0
 
         # for epoch in range(EPOCHS):
@@ -128,3 +152,4 @@ class SketchyRecognizer:
         #         print("Saved better one")
 
         # print("DONE")
+        pass
