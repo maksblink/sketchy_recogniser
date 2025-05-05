@@ -1,21 +1,26 @@
-import os
 import torch
+import tqdm
+import numpy as np
+
 from torch import nn, optim
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from cnn import SketchyCNN
-
-
-import PIL.Image
+from path import Path
 from PIL.Image import Image
-import numpy as np
+
+import PIL.Image as pi
+
 
 
 class SketchyRecognizer:
 
     cnn: SketchyCNN = SketchyCNN()
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    object_list: list[str] = ["house plant", "guitar", "basketball", "sword", "door", "key", "lantern", "chair", "pencil", "axe"]
+    object_list: list[str] = sorted(["house plant", "guitar", "basketball", "sword", "door", "key", "lantern", "chair", "pencil", "axe"])
+    train_dir: str = "assets/train"
+    valid_dir: str = "assets/valid"
+    training_history_file: str = "assets/training_history.csv"
 
     transform = transforms.Compose([
         transforms.Grayscale(num_output_channels=1),
@@ -23,11 +28,16 @@ class SketchyRecognizer:
         transforms.ToTensor(),
         transforms.Normalize((0.0), (0.5))
         ])
-
+    
 
     def __init__(self, auto_load_model: bool = True):
         print("Using:\t", SketchyRecognizer.device)
 
+        training_history_file: Path = Path(self.training_history_file)
+
+        if not training_history_file.exists(): 
+            training_history_file.touch()
+        
         if auto_load_model:
             self.load_model()
         
@@ -36,14 +46,15 @@ class SketchyRecognizer:
 
     def load_model(self, model_name: str = "model.mdl") -> None: 
         try: 
-            SketchyRecognizer.cnn.load_state_dict(torch.load(model_name))
+            SketchyRecognizer.cnn.load_state_dict(torch.load(model_name, weights_only=True))
         except: 
-            print("Model was not loaded")
+            print("Model could not be loaded")
 
 
     def save_model(self, model_name: str = "model.mdl") -> None: 
         try:
-            torch.save(SketchyRecognizer.cnn, model_name)
+            SketchyRecognizer.cnn.to("cpu")
+            torch.save(SketchyRecognizer.cnn.state_dict(), model_name)
         except: 
             print("Model could not be saved")
 
@@ -52,7 +63,7 @@ class SketchyRecognizer:
         device_tensor = tensor.to(SketchyRecognizer.device)
         prediction: torch.Tensor = SketchyRecognizer.cnn.forward(device_tensor)
         host_prediction = prediction.to("cpu")
-        predicted_class: int = host_prediction.argmax(dim=0).item()
+        predicted_class: int = host_prediction.flatten().argmax(dim=0).item()
         return {"class_id": predicted_class, "class_name": SketchyRecognizer.object_list[predicted_class]} 
 
 
@@ -68,29 +79,76 @@ class SketchyRecognizer:
         return self._predict(input_tensor)
 
 
-    def _train_one_epoch(self, dataloader, criterion, optimizer: optim.Optimizer):
+    def train_one_epoch(self, batch_size: int = 64, train_loader = None, optimizer = None, loss_fn = None) -> float:
         SketchyRecognizer.cnn.train()
-        total_loss, correct, total = 0.0, 0, 0
+        running_loss = 0.0
 
-        for images, labels in dataloader:
-            images, labels = images.to(self.device), labels.to(self.device)
+        if train_loader is None: 
+            train_dataset: datasets.ImageFolder = datasets.ImageFolder(self.train_dir, transform=self.transform)
+            train_loader: DataLoader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+        if optimizer is None: 
+            optimizer = torch.optim.Adam(SketchyRecognizer.cnn.parameters())
+
+        if loss_fn is None: 
+            loss_fn = torch.nn.CrossEntropyLoss()
+
+        # print(train_dataset.classes)
+        progress_bar = tqdm.tqdm(desc="Proccessing training dataset...", total=len(train_loader), unit=" batches", colour="green")
+
+        for images, labels in train_loader:
+            d_images: torch.Tensor = images.to(self.device)
+            d_labels: torch.Tensor = labels.to(self.device)
 
             optimizer.zero_grad()
-            outputs = SketchyRecognizer.cnn(images)
-            loss = criterion(outputs, labels)
+            outputs = SketchyRecognizer.cnn(d_images)
+            loss = loss_fn(outputs, d_labels)
             loss.backward()
             optimizer.step()
 
-            total_loss += loss.item()
-            _, predicted = outputs.max(1)
-            correct += (predicted == labels).sum().item()
-            total += labels.size(0)
+            running_loss += loss.item()
+            progress_bar.update(1)
 
-        accuracy = correct / total * 100
-        return total_loss, accuracy
+        return running_loss / len(train_loader) 
 
 
-    def train(self, epochs: int = 69, batch_size: int = 32, learning_rate: float = 0.001) -> None:
+    def validate(self, batch_size: int = 64, valid_loader = None, validate_data = None, loss_fn = None) -> tuple[float, float]:
+        SketchyRecognizer.cnn.eval()
+        running_loss = 0.0
+        correct = 0
+        total = 0
+
+        if valid_loader is None: 
+            valid_dataset = datasets.ImageFolder(self.valid_dir, transform=SketchyRecognizer.transform)
+            valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
+
+        if loss_fn is None: 
+            loss_fn = torch.nn.CrossEntropyLoss()
+
+        with torch.no_grad():
+        
+            progress_bar = tqdm.tqdm(desc="Proccessing training dataset...", total=len(valid_loader), unit=" batches", colour="green")
+
+            for images, labels in valid_loader:
+                d_images: torch.Tensor = images.to(self.device)
+                d_labels: torch.Tensor  = labels.to(self.device)
+
+                outputs: torch.Tensor = SketchyRecognizer.cnn(d_images)
+                loss = loss_fn(outputs, d_labels)
+                running_loss += loss.item()
+
+                predicted = outputs.to("cpu").argmax(dim=1)
+                correct += (predicted == labels).sum().item()
+                total += labels.size(0)
+
+                progress_bar.update(1)
+
+        val_loss = running_loss / len(valid_loader)
+        val_acc = correct / total * 100
+        return val_loss, val_acc
+
+
+    def train(self, epochs: int = 12, batch_size: int = 64, learning_rate: float = 0.001) -> None:
         train_dir = "assets/train"
         valid_dir = "assets/valid"
 
@@ -100,45 +158,26 @@ class SketchyRecognizer:
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
 
-        print(f"Classes: {train_dataset.classes}")
-        print(f"Training images: {len(train_dataset)}, Validation images: {len(valid_dataset)}")
-    
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(SketchyRecognizer.cnn.parameters(), lr=learning_rate)
 
-        for _ in epochs:
-            self._train_one_epoch(dataloader, criterion, optimizer)
+        traning_history_file = open(self.training_history_file, "a")
+
+        for epoch in range(epochs):
+            print('\nEpoch {}/{}\n'.format(epoch, epochs - 1) + '-' * 10)
+            train_loss = self.train_one_epoch(train_loader=train_loader, optimizer=optimizer, loss_fn=criterion)
+            val_loss, val_acc = self.validate(valid_loader=valid_loader, loss_fn=criterion)
+            traning_history_file.write(f"{train_loss},{val_loss},{val_acc}\n")
+
+        traning_history_file.close()
+        self.save_model()
+
+    def __del__(self):
+        torch.cuda.empty_cache()
 
 
-    def _validate(self, model, dataloader, criterion):
-        model.eval()
-        total_loss, correct, total = 0.0, 0, 0
 
-        with torch.no_grad():
-            for images, labels in dataloader:
-                images, labels = images.to(self.device), labels.to(self.device)
-                outputs = model(images)
-                loss = criterion(outputs, labels)
-
-                total_loss += loss.item()
-                _, predicted = outputs.max(1)
-                correct += (predicted == labels).sum().item()
-                total += labels.size(0)
-
-        accuracy = correct / total * 100
-        return total_loss, accuracy
-
-
-    def evaluate(self) -> None: # tu zrobić przejście przez dane testowe, może też tu je załadować. Ma pokazać wykresy z wynikami
-        best_val_acc = 0.0
-
-        val_loss, val_acc = self._validate(SketchyRecognizer.cnn, valid_loader, criterion)
-
-        self._validate(model, dataloader, criterion)
-
-        if val_acc > best_val_acc:
-            best_val_acc = val_acc
-            torch.save(model.state_dict(), "sketchy_model_best.pth")
-            print("Saved better one")
-
-        print("DONE")
+cnn = SketchyRecognizer()
+# res = cnn.predict_from_image(pi.open("/home/nsjg/Desktop/Sketchy_prj/sketchy_recogniser/assets/train/key/key_27014.png"))
+# print(res)
+cnn.train(epochs=5)

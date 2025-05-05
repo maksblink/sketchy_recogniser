@@ -21,6 +21,8 @@ object_list: list[str] = ["house plant", "guitar", "basketball", "sword", "door"
 
 def filter_data() -> None:
     master_file: Path = ASSETS_FOLDER / "master_doodle_dataframe.csv"
+    outmaster_file: Path = ASSETS_FOLDER / "f_master_doodle_dataframe.csv"
+
     df: pd.DataFrame = pd.read_csv(master_file, index_col=0)
 
     drop_cols: list[str] = ["countrycode", "key_id", "recognized", "image_path"]
@@ -31,7 +33,7 @@ def filter_data() -> None:
     df = df[df["word"].isin(object_list)]
     df = df.reset_index(drop=True)
 
-    df.to_csv(master_file)
+    df.to_csv(outmaster_file)
 
 
 def draw_strokes(image_draw: PIL.ImageDraw.ImageDraw, strokes: str) -> None:
@@ -44,7 +46,7 @@ def draw_strokes(image_draw: PIL.ImageDraw.ImageDraw, strokes: str) -> None:
 
 
 def create_images(): 
-    master_file: Path = ASSETS_FOLDER / "master_doodle_dataframe.csv"
+    master_file: Path = ASSETS_FOLDER / "f_master_doodle_dataframe.csv"
     df: pd.DataFrame = pd.read_csv(master_file)
 
     CLASSES_FOLDER: Path = ASSETS_FOLDER / "classes"
@@ -109,6 +111,6 @@ def prepare_data() -> None:
     print("DONE")
 
 if __name__ == "__main__":
-    # filter_data()
-    # create_images()
+    filter_data()
+    create_images()
     prepare_data()
