@@ -8,10 +8,13 @@ from torch.utils.data import DataLoader
 from cnn import SketchyCNN
 from path import Path
 from PIL.Image import Image
-
+from random import choice
+from os import getcwd
+from colorama import Fore
 import PIL.Image as pi
 
-
+try: assert Path(getcwd()).name == "sketchy_recogniser"
+except: print(f"{Fore.RED}Invalid CWD -> change to 'sketchy_recogniser'{Fore.WHITE}")
 
 class SketchyRecognizer:
 
@@ -65,6 +68,20 @@ class SketchyRecognizer:
         host_prediction = prediction.to("cpu")
         predicted_class: int = host_prediction.flatten().argmax(dim=0).item()
         return {"class_id": predicted_class, "class_name": SketchyRecognizer.object_list[predicted_class]} 
+
+
+    def test_predict_from_image(self) -> None: 
+        images_path: Path = Path(self.train_dir)
+        classes: list[Path] = [folder for folder in images_path.iterdir()]
+        random_class: str = choice(classes)
+        random_image_path: Path = choice([x for x in random_class.iterdir()])
+        image: pi.Image = pi.open(random_image_path)
+        
+        input_tensor = SketchyRecognizer.transform(image)
+        prediction: dict[str, int|str] = self._predict(input_tensor)
+        print(prediction)
+        image.show()
+        return
 
 
     def predict_from_image(self, image: Image) -> dict[str, int|str]:
@@ -171,13 +188,3 @@ class SketchyRecognizer:
 
         traning_history_file.close()
         self.save_model()
-
-    def __del__(self):
-        torch.cuda.empty_cache()
-
-
-
-cnn = SketchyRecognizer()
-# res = cnn.predict_from_image(pi.open("/home/nsjg/Desktop/Sketchy_prj/sketchy_recogniser/assets/train/key/key_27014.png"))
-# print(res)
-cnn.train(epochs=5)

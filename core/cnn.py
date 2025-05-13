@@ -34,5 +34,5 @@ class SketchyCNN(nn.Module):
         x = F.relu(self.fc2(x))
         # x = self.dropout2(x) # Optional
         x = self.fc3(x)
-        
+
         return x
