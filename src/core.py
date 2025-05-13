@@ -5,13 +5,14 @@ import numpy as np
 from torch import nn, optim
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
-from cnn import SketchyCNN
 from path import Path
 from PIL.Image import Image
 from random import choice
 from os import getcwd
 from colorama import Fore
 import PIL.Image as pi
+
+from src.cnn import SketchyCNN
 
 try: assert Path(getcwd()).name == "sketchy_recogniser"
 except: print(f"{Fore.RED}Invalid CWD -> change to 'sketchy_recogniser'{Fore.WHITE}")
