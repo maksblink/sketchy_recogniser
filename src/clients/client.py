@@ -6,7 +6,7 @@ import PIL.Image as pi
 
 HOST, PORT = "localhost", 9999
 # data = "".join(sys.argv[1:])
-data: dict[str, list]= {"image": np.array(pi.open("/assets/train/guitar/guitar_18000.png")).tolist()}
+data: dict[str, list]= {"image": np.array(pi.open("./assets/train/guitar/guitar_18000.png")).tolist()}
 res: str = json.dumps(data)
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:

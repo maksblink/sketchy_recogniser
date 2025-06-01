@@ -11,7 +11,6 @@ Kaggle doodle dataset: https://www.kaggle.com/datasets/ashishjangra27/doodle-dat
     1. Linux
     (Action) -> get to desired folder
     (Action) -> open Terminal
-    (Action) -> run commnad: git clone https://github.com/maksblink/sketchy_recogniser.git
     (Action) -> run installer.sh (To be tested)
 
     2. Windows
