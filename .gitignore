@@ -4,6 +4,8 @@
 sketchy_recogniser.code-workspace
 *.png
 *.csv
+
+!assets/training_history.csv
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/

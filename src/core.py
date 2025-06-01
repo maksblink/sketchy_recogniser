@@ -25,6 +25,7 @@ class SketchyRecognizer:
     train_dir: str = "assets/train"
     valid_dir: str = "assets/valid"
     training_history_file: str = "assets/training_history.csv"
+    assest_dir: str = "assets/"
 
     transform = transforms.Compose([
         transforms.Grayscale(num_output_channels=1),
@@ -37,9 +38,12 @@ class SketchyRecognizer:
     def __init__(self, auto_load_model: bool = True):
         print("Using:\t", SketchyRecognizer.device)
 
+        assets_dir: Path = Path(self.assest_dir)
         training_history_file: Path = Path(self.training_history_file)
 
         if not training_history_file.exists(): 
+            if not assets_dir.exists():
+                assets_dir.mkdir()
             training_history_file.touch()
         
         if auto_load_model:

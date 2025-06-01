@@ -10,7 +10,7 @@ cd sketchy_recogniser || exit 1
 curl -sSL https://install.python-poetry.org | python3 -
 
 # Create a new conda environment with Python 3.12.8
-conda create --yes --name .venv python=3.12.8
+conda create --yes --name .venv --prefix $(pwd) python=3.12.8
 
 # Get the path to the new Python interpreter
 PYTHON_PATH="$(conda run -n .venv which python)"
