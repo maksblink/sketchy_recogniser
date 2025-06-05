@@ -13,7 +13,7 @@ curl -sSL https://install.python-poetry.org | python3 -
 conda create --yes --name .venv --prefix $(pwd) python=3.12.8
 
 # Get the path to the new Python interpreter
-PYTHON_PATH="$(conda run -n .venv which python)"
+PYTHON_PATH="$(find ./.venv -type f -name python3.12)"
 
 # Set Poetry to use the new Python interpreter
 poetry env use "$PYTHON_PATH"
